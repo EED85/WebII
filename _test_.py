@@ -1,3 +1,6 @@
+import sys 
+import os
+
 sys.path.append(os.path.abspath("C:/Users/EricBrahmann/EED-Solutions by Eric Brahmann/Ideal Dental - Dateien Code/webII/vars_module"))
 from vars import watchout
 
@@ -17,3 +20,9 @@ dir(pm)
 
 def_global_()
 watchout()
+
+import vars_module
+v = vars_module.vars.def_global_()
+del url_root
+vars_module.vars.def_global_()
+vars_module.vars.watchout()
