@@ -20,7 +20,7 @@ dir(pm)
 
 def_global_()
 watchout()
-
+sys.path.append(os.path.abspath("C:/Users/EricBrahmann/EED-Solutions by Eric Brahmann/Ideal Dental - Dateien Code/webII"))
 import vars_module
 v = vars_module.vars.def_global_()
 del url_root

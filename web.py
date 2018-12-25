@@ -19,6 +19,9 @@ import os
 #------------------------------------------------
 
 #import global variables
+sys.path.append(os.path.abspath("C:/Users/EricBrahmann/EED-Solutions by Eric Brahmann/Ideal Dental - Dateien Code/webII"))
+import vars_module
+url_root = = vars_module.vars.def_global_()
 
 
 #Log
