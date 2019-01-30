@@ -1,43 +1,78 @@
-#import modules
-
-import math
-import os
-import re
-import socket
-import time
-
-import bs4
-import pandas
-import requests
-from bs4 import BeautifulSoup
-import sys 
-import os
-#define variables
-
 #-------------------------------------------------
 #0) Initialisierung
-#------------------------------------------------
+#-------------------------------------------------
 
+
+    #-------------------------------------------------
+    #0.1) Log
+    #-------------------------------------------------
+import os
+# wd = os.path.dirname(os.path.abspath(__file__)) - works only in batch mod
+os.chdir(r'C:\Users\EricBrahmann\EED-Solutions by Eric Brahmann\Ideal Dental - Dateien Code\webII')
+os.getcwd()
+logfile =  'out/webII.log'
+open(logfile, 'w').close() #reset log file
+
+    # CRITICAL 50
+    # ERROR 40
+    # WARNING 30
+    # INFO 20
+    # DEBUG 10
+    # NOTSET 0
+import logging
+    #set logging to txtfile
+logging.basicConfig(filename=logfile,level=logging.DEBUG,format='%(asctime)s - %(levelname)s %(message)s')
+    #set logging to console
+console = logging.StreamHandler()
+console.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
+console.setFormatter(formatter)
+logging.getLogger("").addHandler(console)
+
+logging.info('\n' + '-'*30 + '\n0) Initialisierung\n' + '-'*30 + '\n')
+
+    #-------------------------------------------------
+    #0.2) Modules
+    #-------------------------------------------------
+logging.Info('0.2) importing modules\n')
+
+import sys 
+import pkg_resources
+import time
+
+import math
+import numpy as np
+import pandas
+
+import re
+
+import socket
+import bs4
+import requests
+from bs4 import BeautifulSoup
+
+
+    #-------------------------------------------------
+    #0.3) define variables
+    #-------------------------------------------------
+logging.Info('0.3) define variables\n')
 #import global variables
 sys.path.append(os.path.abspath("C:/Users/EricBrahmann/EED-Solutions by Eric Brahmann/Ideal Dental - Dateien Code/webII"))
 import vars_module
 url_root = vars_module.vars.def_global_()
+logging.info(url_root)
 
+ip_address = socket.gethostbyname(socket.gethostname())
+logging.info('IP: ' + ip_address + '\n')
+t0 = time.clock();T=0;RUNTIME = time.strftime("%H:%M:%S", time.gmtime(0))
 
-#Log
-path_code = 'C:/Users/EricBrahmann/EED-Solutions by Eric Brahmann/Ideal Dental - Dateien Code/webII'
-outpath = path_code + '/out'
-logfile =  outpath+'log.txt'  
-localtime = time.asctime( time.localtime(time.time()) )
-ip_address = socket.gethostbyname(socket.gethostname())     
-with open(logfile,'w') as f:
-        f.write('start: ' + localtime)
-        f.write('/nip: ' + ip_address) 
+logging.info('PACKAGE VERSION\n')
+
+for d in pkg_resources.working_set:
+    logging.debug(d.project_name + " - " + d.version)
+
 
 # variables
-
-
-    
 
     #Excel output
 l = [] #temporary list 
@@ -56,10 +91,12 @@ url = url_root+'/produkte'
 cr = 0 #Count of Web requests
 TEST = 1
 I=0;J=0
+
 #-------------------------------------------------
 #1) Start
-#------------------------------------------------
+#-------------------------------------------------
 
+logging.info('\n' + '-'*30 + '\n1) START\n' + '-'*30 + '\n')
 
 if TEST:
     url = 'C:\\Users\\EricBrahmann\\EED-Solutions by Eric Brahmann\\Ideal Dental - Dateien Code\\webII\\in\\000_view-source_https_produkte.html'
@@ -67,6 +104,7 @@ if TEST:
 
 else:
     r = requests.get(url);cr = cr+1
+    logging.debug('REQUEST No ' + str(cr) + ': ' + url )
     c = ''
     soup = ''
 
@@ -77,7 +115,7 @@ for item in all_cat0:
     I+=1
     print(item.Text)
     sl0 = item.find_all("a")
-    print ('found ' +str(len(sl0)) + ' sublinks') 
+    logging.debug ('found ' +str(len(sl0)) + ' sublinks') 
     J = 0
     for  link in sl0:
         d={}
@@ -101,3 +139,8 @@ for item in all_cat0:
 print('cat read')
 
 l[0]
+
+
+T = time.clock()
+RUNTIME = time.strftime("%H:%M:%S", time.gmtime(T-t0))
+logging.info('END \n\n RUNTIME :' + RUNTIME)
