@@ -1,7 +1,6 @@
 def webII_test(url_root='',path=''):
     print(url_root)
     print(path)
-    import os
 
 
 def webII(url_root,path):
