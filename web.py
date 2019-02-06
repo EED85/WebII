@@ -57,7 +57,10 @@ d = {} #temporary dictionary
 df1='' #Pandas Dataframes
 sheet_out = "Tabelle1"
     # Steuervariablen
-max_web_i = 2  #maximum loop for webscrapping 
+max_web_i = [float('Inf') #cat0 -> is not used
+            ,float('Inf') #cat1
+            ,2 #cat2
+            ]  #maximum loop for webscrapping 
 # max_web_i = float('Inf') # scrap all
 
     # URLs
@@ -89,7 +92,6 @@ else:
         logging.info('TEST')
     else:
         r = requests.get(url);cr = cr+1
-        r
         logging.debug('REQUEST No ' + str(cr) + ': ' + url )
         c = r.content
         soup = BeautifulSoup(c,"html.parser")
@@ -124,7 +126,47 @@ else:
 
 logging.info('\n' + '-'*30 + '\n1.2) Cat1\n' + '-'*30 + '\n')
 
-l[0]
+cat_label = 'Kategorie_1'
+file = r'out' + '\\' + cat_label
+
+if load_df[1]:
+    df2 = pd.read_pickle(file + '.pkl')
+else:
+    I = 0;l=[]
+    for index,row in df1.iterrows():
+        url = row["url"]
+        r = requests.get(url);cr = cr+1
+        logging.debug('REQUEST No ' + str(cr) + ': ' + url )
+        c = r.content
+        soup = BeautifulSoup(c,"html.parser")
+        all_cat1 = soup.find("aside",{"class":"sidemenu categories syncheight"})
+        sublinks = all_cat1.find_all('li',class_="")
+        len(sublinks)
+        sublinks[0].find('a')
+        for link in sublinks:
+            link_a = link.find('a')
+            has_link = link_a.has_attr('href')
+            if has_link:
+                d={}
+                I+=1
+                logging.debug('I=' + str(I) + ' - ' + link_a.text + ' - ' + link_a['href'])
+                d["index"] = I
+                if TEST:
+                    d["url"] = link_a['href'] #put absolute URL in offline file 
+                else:
+                    d["url"] = url_root + link_a['href']
+                    d["Kategorie - Level0"] = row["Kategorie - Level0"]
+                    d["Kategorie - Level1"] = link_a.text
+                    d["Kategorie - Level2"] = ""
+                    l.append(d)
+        if index >= max_web_i[1]-1:
+            logging.warning('Maximum number of webscapping : {}'.format(max_web_i))
+            break
+    df2 = DataFrame(l)
+    logging.info(df1.head())
+    df2.to_csv( file + '.csv') 
+    df2.to_pickle(file + '.pkl')
+
 T = time.clock()
 RUNTIME = time.strftime("%H:%M:%S", time.gmtime(T-t0))
 logging.info('END \n\n RUNTIME :' + RUNTIME)
