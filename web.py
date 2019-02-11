@@ -55,27 +55,31 @@ for d in pkg_resources.working_set:
 l = [] #temporary list 
 d = {} #temporary dictionary
 l_df = [] #list of Pandas Dataframes
-for I in range(3):
+for I in range(5):
     df_tmp = DataFrame([])
     l_df.append(df_tmp)
-
+l_t = [] # list for time logging
 
 sheet_out = "Tabelle1"
     # Steuervariablen
-max_web_i = [float('Inf') #cat0 -> is not used
+max_web_i = (float('Inf') #cat0 -> is not used
             ,float('Inf') #cat1
             ,float('Inf') #cat2
-            ]  #maximum loop for webscrapping 
+            ,1  #prod0: pages and cat2
+            ,1 #prod2: products
+            )  #maximum loop for webscrapping 
 # max_web_i = float('Inf') # scrap all
 
     # URLs
 url = url_root+'/produkte'
     #Control
 cr = 0 #Count of Web requests
-load_df = [True #cat0
+load_df = (True #cat0
         ,True #cat1
-        ,False #cat2
-        ]
+        ,True #cat2
+        ,False #prod0
+        ,False #prod1
+        )
 logging.info('load_df = ' + str(load_df))
 I=0;J=0
 #-------------------------------------------------
@@ -248,13 +252,135 @@ else:
     df.to_pickle(file + '.pkl')
     l_df[level] = df
 
-
-
 T2 = time.clock()
 RUNTIME2 = time.strftime("%H:%M:%S", time.gmtime(T2-t2))
 logging.info('\n\n RUNTIME - Level {}: '.format(level) + RUNTIME2)
 
+#-------------------------------------------------
+#2.0) Start Prod0
+#-------------------------------------------------
+p_level = 0
+level = 3
+logging.info('\n' + '-'*30 + '\n2.' +str(p_level) + ') Prod' + str(p_level)+'\n' + '-'*30 + '\n')
+df1 = l_df[level-1]
+# k = scrap_prod0(soup)
+def scrap_prod0(soup):
+    soup_pr = soup.find_all('div',{'class':'l-product-inner mod-standard-inner'})
+    l=[]
+    J = 0
+    for pr in soup_pr:
+        J+=1
+        d = {}
+        d["url"] = url_root + pr.find('a',{'class':'product-details'})['href']
+        d["url_image"] = url_root + pr.find('img')["data-src"]
+        soup_p = pr.find_all("p")
+        # m = 0
+        # for p in soup_p:
+        #     m+=1
+        #     print(m)
+        #     print(p.text)
+        d["Hersteller"] = soup_p[5].text
+        d["art"] = soup_p[2].text
+        d["Kategorie - Level0"] = row["Kategorie - Level0"]
+        d["Kategorie - Level1"] = row["Kategorie - Level1"]
+        d["Kategorie - Level2"] = row["Kategorie - Level2"]
+        d["pzn"] = pr.find('span',{'class':'pzn'}).text
+        d["Packungsgroesse"] = pr.find('p',{'class':'size packagingSize'}).text
+        d["Title"] = pr.find('span',{'class':'link name'}).text
+        d["Preis"] = pr.find('span',{'class':'salesPrice'}).text
+        d["Retail_Preis"] = pr.find('span',{'class':'retailPrice line-through'}).text
+        try:
+            d["sie_sparen"] = pr.find('div',{'class':'prod_savings savings'}).text
+        except:
+            d["sie_sparen"] = ""
+        soup_check = pr.find_all('li',{'class':'gicon-checkmark-green'})
+        str_tmp = ""
+        for check in soup_check:
+            str_tmp = str_tmp + ";" + check.text
+        d["haeckchen"] = str_tmp
+        
 
+        # d["Bewertung"] = pr.find('span',{'class':'bv-off-screen'}).text
+        # d["Anz_Bewertung"] = ""
+        
+        soup_saleC = pr.find('select',{'name':'saleCondition'})
+        soup_saleC_opt = soup_saleC.find_all("option")
+        str_tmp = ""
+        for opt in soup_saleC_opt:
+            str_tmp = str_tmp + ";" + opt.text
+        d["Rezeptart"] = str_tmp
+
+        soup_pzn = pr.find('select',{'name':'pzn'})
+        soup_pzn_opt = soup_pzn.find_all("option")
+        str_tmp = ""
+        for opt in soup_pzn_opt:
+            str_tmp = str_tmp + ";" + opt.text
+
+        d["Packungsgroesse2"] = str_tmp
+        l.append(d)
+    return(l)
+
+
+d_t = {'t':np.nan,'T':np.nan,'RUNTIME' : np.nan}
+d_t['t'] = time.clock()
+cat_label = 'Produkt_{}'.format(p_level)
+file = r'out' + '\\' + cat_label
+
+if load_df[level]:
+    df = pd.read_pickle(file + '.pkl')
+    logging.info('df was loaded from disk')
+    logging.debug(df.head())
+    l_df[level] = df
+else:
+    I = 0;l=[]
+    for index,row in df1.iterrows():
+        url = row["url"]
+        r = requests.get(url);cr = cr+1
+        logging.debug('REQUEST No ' + str(cr) + ': ' + url )
+        c = r.content
+        soup = BeautifulSoup(c,"html.parser")
+        soup_pages = soup.find('div',{'class':'pagination seo-pagination'})
+        if soup_pages is None:
+            no_pages = 1
+        else:
+            soup_pages_no = soup_pages.find_all('li',class_="")
+            no_pages = int(soup_pages_no[-1].find('a').text)
+        logging.debug('No of pages : {}'.format(no_pages))
+        l = scrap_prod0(soup)
+        if no_pages > 1:
+            print()
+            J = 0
+            for p in soup_pages_no:
+                J+=1
+                if J > 1:
+                    url = url_root + p.find("a")["href"]
+                    r = requests.get(url);cr = cr+1
+                    logging.debug('REQUEST No ' + str(cr) + ': ' + url )
+                    c = r.content
+                    soup = BeautifulSoup(c,"html.parser")
+                    l2 = scrap_prod0(soup)
+                    l = l+l2
+        if index >= max_web_i[level]-1:
+            logging.warning('Maximum number of webscapping : {}'.format(max_web_i))
+            break
+    df = DataFrame(l)
+    logging.info(df.head())
+    df.to_csv( file + '.csv') 
+    df.to_pickle(file + '.pkl')
+    l_df[level] = df
+
+d_t['T'] = time.clock()
+d_t['RUNTIME'] = time.strftime("%H:%M:%S", time.gmtime(d_t['T']-d_t['t']))        
+logging.info('\n\n RUNTIME - Level {}: '.format(level) + d_t['RUNTIME'])
+l_t.append(d_t)
+
+
+
+# soup_stars = soup_pr[0].find_all('span',{'class':"bv-rating-stars bv-rating-stars-off"})
+# soup_p = soup_pr[0].find_all('div',{'class':'BVRRInlineRating'})
+
+
+    
 
 
 T = time.clock()
