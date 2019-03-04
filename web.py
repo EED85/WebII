@@ -278,7 +278,7 @@ file = r'out' + '\\' + cat_label
 
 def save_html(file,soup):
     with open(file,'w') as f:
-        f.write(str(soup.prettify('latin-1', 'minimal')))
+        f.write(str(soup.prettify().encode('utf-8','ignore')))  
     logging.debug(file + ' saved to disk' )
 
 def get_soup(url):
@@ -298,12 +298,10 @@ else:
     for index,row in df1.iterrows():
         d = {}
         url = row["url"]
-        # r = requests.get(url);cr = cr+1
-        
-        # c = r.content
-        # soup = BeautifulSoup(c,"html.parser")
         soup = get_soup(url)
         logging.debug('REQUEST No ' + str(cr) + ': ' + url )
+        if len(soup) == 0:
+            logging.warning(url + ' Empty html fetched ' )
         
         soup_pages = soup.find('div',{'class':'pagination seo-pagination'})
         if soup_pages is None:
@@ -335,10 +333,6 @@ else:
                 J+=1
                 if J > 1:
                     url = url_root + p.find("a")["href"]
-                    # r = requests.get(url);cr = cr+1
-                    
-                    # c = r.content
-                    # soup = BeautifulSoup(c,"html.parser")
                     soup = get_soup(url)
                     logging.debug('REQUEST No ' + str(cr) + ': ' + url )
                     d["url"] = url
@@ -454,17 +448,20 @@ else:
         
         url = row["Filepath"]
         soup = BeautifulSoup(open(url), "html.parser")
-        l = scrap_prod0(soup)
+        l1 = scrap_prod0(soup)
+        print(url)
+        print('index = {}'.format(index))
+        print('len = {}'.format(len(l1)))
         I+=1
-        if I >= 1:
-            break
+        l = l + l1
+        # if I >= 1:
+        #     break
 
 df = DataFrame(l)
 logging.info(df.head())
 df.to_csv( file + '.csv') 
 df.to_pickle(file + '.pkl')
 l_df[level] = df
-l1 = scrap_prod0(soup)
 
 # soup_stars = soup_pr[0].find_all('span',{'class':"bv-rating-stars bv-rating-stars-off"})
 # soup_p = soup_pr[0].find_all('div',{'class':'BVRRInlineRating'})
