@@ -62,11 +62,12 @@ l_t = [] # list for time logging
 
 sheet_out = "Tabelle1"
     # Steuervariablen
-max_web_i = (float('Inf') #cat0 -> is not used
-            ,float('Inf') #cat1
-            ,float('Inf') #cat2
-            ,2  #prod0: cat2
-            ,1 #prod2: products
+max_web_i = (float('Inf')   #cat0 -> is not used
+            ,float('Inf')   #cat1
+            ,float('Inf')   #cat2
+            ,2              #prod0: - page level
+            ,float('Inf')   #prod0 - product Level
+            ,1              #prod2: products
             )  #maximum loop for webscrapping 
 # max_web_i = float('Inf') # scrap all
 
@@ -77,7 +78,8 @@ cr = 0 #Count of Web requests
 load_df = (True #cat0
         ,True #cat1
         ,True #cat2
-        ,False #prod0
+        ,False #prod0 - page level
+        ,False #prod0 - product Level
         ,False #prod1
         )
 logging.info('load_df = ' + str(load_df))
@@ -263,7 +265,108 @@ p_level = 0
 level = 3
 logging.info('\n' + '-'*30 + '\n2.' +str(p_level) + ') Prod' + str(p_level)+'\n' + '-'*30 + '\n')
 df1 = l_df[level-1]
-# k = scrap_prod0(soup)
+
+d_t = {'t':np.nan,'T':np.nan,'RUNTIME' : np.nan}
+d_t['t'] = time.clock()
+cat_label = 'Produkt_{}'.format(p_level)
+file = r'out' + '\\' + cat_label
+
+    #-------------------------------------------------
+    #2.1) Save all pages to disk
+    #-------------------------------------------------
+
+def save_html(file,soup):
+    with open(file,'w') as f:
+        f.write(str(soup.prettify('utf-8', 'minimal')))
+    logging.debug(file + ' saved to disk' )
+
+if load_df[level]:
+    df = pd.read_pickle(file + '.pkl')
+    logging.info('df was loaded from disk')
+    logging.debug(df.head())
+    l_df[level] = df
+else:
+    I = 0;l=[]
+    for index,row in df1.iterrows():
+        d = {}
+        url = row["url"]
+        r = requests.get(url);cr = cr+1
+        logging.debug('REQUEST No ' + str(cr) + ': ' + url )
+        c = r.content
+        soup = BeautifulSoup(c,"html.parser")
+        soup_pages = soup.find('div',{'class':'pagination seo-pagination'})
+        if soup_pages is None:
+            no_pages = 1
+        else:
+            soup_pages_no = soup_pages.find_all('li',class_="")
+            if len(soup_pages_no) == 0:
+                no_pages = 1
+            else:
+                no_pages = int(soup_pages_no[-1].find('a').text)
+        logging.debug('No of pages : {}'.format(no_pages))
+        
+        d["url"] = row["url"]
+        d["Kategorie - Level0"] = row["Kategorie - Level0"]
+        d["Kategorie - Level1"] = row["Kategorie - Level1"]
+        d["Kategorie - Level2"] = row["Kategorie - Level2"]
+        d["page"] = 1
+        d["index"] = I
+        file_html = 'out/html/' + cat_label + '_{:06d}.html'.format(I)
+        d["Filepath"] = file_html
+        l.append(d)
+        save_html(file_html,soup)
+        I+=1
+        d =  d.copy()
+        if no_pages > 1:
+            print()
+            J = 0
+            for p in soup_pages_no:
+                J+=1
+                if J > 1:
+                    url = url_root + p.find("a")["href"]
+                    r = requests.get(url);cr = cr+1
+                    logging.debug('REQUEST No ' + str(cr) + ': ' + url )
+                    c = r.content
+                    soup = BeautifulSoup(c,"html.parser")
+                    d["url"] = url
+                    d["page"] = J
+                    d["index"] = I
+                    file_html = 'out/html/' + cat_label + '_{:06d}.html'.format(I)
+                    d["Filepath"] = file_html
+                    I+=1
+                    l.append(d)
+                    d =  d.copy()
+                    save_html(file_html,soup)
+        print('index = {}'.format(index))
+        if index >= max_web_i[level]-1:
+            logging.warning('Maximum number of webscapping : {}'.format(max_web_i[level]))
+            break
+    df = DataFrame(l)
+    logging.info(df.head())
+    df.to_csv( file + '.csv') 
+    df.to_pickle(file + '.pkl')
+    l_df[level] = df
+
+d_t['T'] = time.clock()
+d_t['RUNTIME'] = time.strftime("%H:%M:%S", time.gmtime(d_t['T']-d_t['t']))        
+logging.info('\n\n RUNTIME - Level {}: '.format(level) + d_t['RUNTIME'])
+l_t.append(d_t)
+
+    #-------------------------------------------------
+    #2.2) scrap product details
+    #-------------------------------------------------
+
+p_level = 1
+level = 4
+logging.info('\n' + '-'*30 + '\n2.' +str(p_level) + ') Prod' + str(p_level)+'\n' + '-'*30 + '\n')
+df1 = l_df[level-1]
+
+d_t = {'t':np.nan,'T':np.nan,'RUNTIME' : np.nan}
+d_t['t'] = time.clock()
+cat_label = 'Produkt_{}'.format(p_level)
+file = r'out' + '\\' + cat_label
+
+
 
 # Vorgabe :
 # Artikeltitel, Artikeltext, Artikelbild url, Kategorie, Packungsgröße, PZN, 
@@ -326,11 +429,6 @@ def scrap_prod0(soup):
     return(l)
 
 
-d_t = {'t':np.nan,'T':np.nan,'RUNTIME' : np.nan}
-d_t['t'] = time.clock()
-cat_label = 'Produkt_{}'.format(p_level)
-file = r'out' + '\\' + cat_label
-
 if load_df[level]:
     df = pd.read_pickle(file + '.pkl')
     logging.info('df was loaded from disk')
@@ -339,47 +437,19 @@ if load_df[level]:
 else:
     I = 0;l=[]
     for index,row in df1.iterrows():
-        url = row["url"]
-        r = requests.get(url);cr = cr+1
-        logging.debug('REQUEST No ' + str(cr) + ': ' + url )
-        c = r.content
-        soup = BeautifulSoup(c,"html.parser")
-        soup_pages = soup.find('div',{'class':'pagination seo-pagination'})
-        if soup_pages is None:
-            no_pages = 1
-        else:
-            soup_pages_no = soup_pages.find_all('li',class_="")
-            no_pages = int(soup_pages_no[-1].find('a').text)
-        logging.debug('No of pages : {}'.format(no_pages))
-        l1 = scrap_prod0(soup)
-        if no_pages > 1:
-            print()
-            J = 0
-            for p in soup_pages_no:
-                J+=1
-                if J > 1:
-                    url = url_root + p.find("a")["href"]
-                    r = requests.get(url);cr = cr+1
-                    logging.debug('REQUEST No ' + str(cr) + ': ' + url )
-                    c = r.content
-                    soup = BeautifulSoup(c,"html.parser")
-                    l2 = scrap_prod0(soup)
-                    l1 = l1+l2
-        l = l + l1
-        if index >= max_web_i[level]-1:
-            logging.warning('Maximum number of webscapping : {}'.format(max_web_i))
+        
+        url = row["Filepath"]
+        soup = BeautifulSoup(open(url), "html.parser")
+        l = scrap_prod0(soup)
+        I+=1
+        if I >= 1:
             break
-    df = DataFrame(l)
-    logging.info(df.head())
-    df.to_csv( file + '.csv') 
-    df.to_pickle(file + '.pkl')
-    l_df[level] = df
 
-d_t['T'] = time.clock()
-d_t['RUNTIME'] = time.strftime("%H:%M:%S", time.gmtime(d_t['T']-d_t['t']))        
-logging.info('\n\n RUNTIME - Level {}: '.format(level) + d_t['RUNTIME'])
-l_t.append(d_t)
-
+df = DataFrame(l)
+logging.info(df.head())
+df.to_csv( file + '.csv') 
+df.to_pickle(file + '.pkl')
+l_df[level] = df
 l1 = scrap_prod0(soup)
 
 # soup_stars = soup_pr[0].find_all('span',{'class':"bv-rating-stars bv-rating-stars-off"})
