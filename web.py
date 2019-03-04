@@ -38,6 +38,7 @@ import socket
 import bs4
 import requests
 from bs4 import BeautifulSoup
+import urllib.request as urllib2
 from pandas import DataFrame
 #-------------------------------------------------
 #0.3) define variables
@@ -277,8 +278,15 @@ file = r'out' + '\\' + cat_label
 
 def save_html(file,soup):
     with open(file,'w') as f:
-        f.write(str(soup.prettify('utf-8', 'minimal')))
+        f.write(str(soup.prettify('latin-1', 'minimal')))
     logging.debug(file + ' saved to disk' )
+
+def get_soup(url):
+    request = urllib2.Request(url)
+    request.add_header('Accept-Encoding', 'utf-8')
+    response = urllib2.urlopen(request)
+    soup = BeautifulSoup(response.read().decode('utf-8', 'ignore'))
+    return(soup)
 
 if load_df[level]:
     df = pd.read_pickle(file + '.pkl')
@@ -290,10 +298,13 @@ else:
     for index,row in df1.iterrows():
         d = {}
         url = row["url"]
-        r = requests.get(url);cr = cr+1
+        # r = requests.get(url);cr = cr+1
+        
+        # c = r.content
+        # soup = BeautifulSoup(c,"html.parser")
+        soup = get_soup(url)
         logging.debug('REQUEST No ' + str(cr) + ': ' + url )
-        c = r.content
-        soup = BeautifulSoup(c,"html.parser")
+        
         soup_pages = soup.find('div',{'class':'pagination seo-pagination'})
         if soup_pages is None:
             no_pages = 1
@@ -324,10 +335,12 @@ else:
                 J+=1
                 if J > 1:
                     url = url_root + p.find("a")["href"]
-                    r = requests.get(url);cr = cr+1
+                    # r = requests.get(url);cr = cr+1
+                    
+                    # c = r.content
+                    # soup = BeautifulSoup(c,"html.parser")
+                    soup = get_soup(url)
                     logging.debug('REQUEST No ' + str(cr) + ': ' + url )
-                    c = r.content
-                    soup = BeautifulSoup(c,"html.parser")
                     d["url"] = url
                     d["page"] = J
                     d["index"] = I
@@ -351,6 +364,7 @@ d_t['T'] = time.clock()
 d_t['RUNTIME'] = time.strftime("%H:%M:%S", time.gmtime(d_t['T']-d_t['t']))        
 logging.info('\n\n RUNTIME - Level {}: '.format(level) + d_t['RUNTIME'])
 l_t.append(d_t)
+
 
     #-------------------------------------------------
     #2.2) scrap product details
