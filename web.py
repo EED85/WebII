@@ -66,7 +66,7 @@ sheet_out = "Tabelle1"
 max_web_i = (float('Inf')   #cat0 -> is not used
             ,float('Inf')   #cat1
             ,float('Inf')   #cat2
-            ,2              #prod0: - page level
+            ,float('Inf')   #prod0: - page level
             ,float('Inf')   #prod0 - product Level
             ,1              #prod2: products
             )  #maximum loop for webscrapping 
@@ -281,12 +281,12 @@ def save_html(file,soup):
         f.write(str(soup.prettify().encode('utf-8','ignore')))  
     logging.debug(file + ' saved to disk' )
 
-def get_soup(url):
+def get_soup(url,cr):
     request = urllib2.Request(url)
     request.add_header('Accept-Encoding', 'utf-8')
     response = urllib2.urlopen(request)
     soup = BeautifulSoup(response.read().decode('utf-8', 'ignore'))
-    return(soup)
+    return(soup,cr+1)
 
 if load_df[level]:
     df = pd.read_pickle(file + '.pkl')
@@ -298,7 +298,7 @@ else:
     for index,row in df1.iterrows():
         d = {}
         url = row["url"]
-        soup = get_soup(url)
+        soup,cr = get_soup(url,cr)
         logging.debug('REQUEST No ' + str(cr) + ': ' + url )
         if len(soup) == 0:
             logging.warning(url + ' Empty html fetched ' )
@@ -333,7 +333,7 @@ else:
                 J+=1
                 if J > 1:
                     url = url_root + p.find("a")["href"]
-                    soup = get_soup(url)
+                    soup,cr = get_soup(url,cr)
                     logging.debug('REQUEST No ' + str(cr) + ': ' + url )
                     d["url"] = url
                     d["page"] = J
