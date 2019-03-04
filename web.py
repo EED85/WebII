@@ -65,7 +65,7 @@ sheet_out = "Tabelle1"
 max_web_i = (float('Inf') #cat0 -> is not used
             ,float('Inf') #cat1
             ,float('Inf') #cat2
-            ,1  #prod0: pages and cat2
+            ,2  #prod0: cat2
             ,1 #prod2: products
             )  #maximum loop for webscrapping 
 # max_web_i = float('Inf') # scrap all
@@ -264,6 +264,11 @@ level = 3
 logging.info('\n' + '-'*30 + '\n2.' +str(p_level) + ') Prod' + str(p_level)+'\n' + '-'*30 + '\n')
 df1 = l_df[level-1]
 # k = scrap_prod0(soup)
+
+# Vorgabe :
+# Artikeltitel, Artikeltext, Artikelbild url, Kategorie, Packungsgröße, PZN, 
+# Darreichungsform, Verodnungsart, Anbieter/Hersteller,  UVP, Verkaufspreis, URL zu Beipackzettel
+
 def scrap_prod0(soup):
     soup_pr = soup.find_all('div',{'class':'l-product-inner mod-standard-inner'})
     l=[]
@@ -346,7 +351,7 @@ else:
             soup_pages_no = soup_pages.find_all('li',class_="")
             no_pages = int(soup_pages_no[-1].find('a').text)
         logging.debug('No of pages : {}'.format(no_pages))
-        l = scrap_prod0(soup)
+        l1 = scrap_prod0(soup)
         if no_pages > 1:
             print()
             J = 0
@@ -359,7 +364,8 @@ else:
                     c = r.content
                     soup = BeautifulSoup(c,"html.parser")
                     l2 = scrap_prod0(soup)
-                    l = l+l2
+                    l1 = l1+l2
+        l = l + l1
         if index >= max_web_i[level]-1:
             logging.warning('Maximum number of webscapping : {}'.format(max_web_i))
             break
@@ -374,7 +380,7 @@ d_t['RUNTIME'] = time.strftime("%H:%M:%S", time.gmtime(d_t['T']-d_t['t']))
 logging.info('\n\n RUNTIME - Level {}: '.format(level) + d_t['RUNTIME'])
 l_t.append(d_t)
 
-
+l1 = scrap_prod0(soup)
 
 # soup_stars = soup_pr[0].find_all('span',{'class':"bv-rating-stars bv-rating-stars-off"})
 # soup_p = soup_pr[0].find_all('div',{'class':'BVRRInlineRating'})
