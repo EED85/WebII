@@ -48,6 +48,7 @@ logging.info(url_root)
 ip_address = socket.gethostbyname(socket.gethostname())
 logging.info('IP: ' + ip_address + '\n')
 t0 = time.clock();T=0;RUNTIME = time.strftime("%H:%M:%S", time.gmtime(0))
+logging.info('Python version : ' + str(sys.version_info))
 logging.info('PACKAGE VERSION\n')
 for d in pkg_resources.working_set:
     logging.debug(d.project_name + " - " + d.version)
@@ -276,6 +277,33 @@ file = r'out' + '\\' + cat_label
     #2.1) Save all pages to disk
     #-------------------------------------------------
 
+def encode_html(html_file):
+    d_translate = {r"\xc3\xbc": "ü"
+        ,r'\xc3\x9c' : 'Ü'
+        ,r"\xc3\x9f": "ß"
+        ,r'\xc3\xa4': 'ä'
+        ,r'\xc3\x82': 'Ä'
+        ,r'\xc3\xb6': 'ö'
+        ,r'\xc3\x95': 'Ö'
+        ,r'\xe2\x82\xac' : '€'
+            } 
+    with open(html_file) as f:
+        content = f.readlines()[0]
+
+    rep = dict((re.escape(k), v) for k, v in d_translate.items())
+    pattern = re.compile("|".join(rep.keys()))
+    str_encoded = pattern.sub(lambda m: rep[re.escape(m.group(0))], content)
+    return(str_encoded)
+
+
+# html_file = 'out/html/Produkt_0_000000.html'
+# cont = encode_html(html_file)
+# file = 'out/html/encoded/Produkt_0_000000.html'
+# with open(file,'w') as f:
+#         f.write(cont)
+
+
+
 def save_html(file,soup):
     with open(file,'w') as f:
         f.write(str(soup.prettify().encode('utf-8','ignore')))  
@@ -364,6 +392,20 @@ l_t.append(d_t)
     #2.2) scrap product details
     #-------------------------------------------------
 
+def encode_html_and_save():
+    html_files = os.listdir( 'out/html' )
+    I = 0
+    for html_file in html_files:
+        if html_file[-5:] == ".html":
+            I +=1
+            cont = encode_html('out/html/'+html_file)
+            outfile = 'out/html/encoded/'+html_file
+            with open(outfile,'w') as f:
+                f.write(cont)
+
+
+encode_html_and_save() 
+
 p_level = 1
 level = 4
 logging.info('\n' + '-'*30 + '\n2.' +str(p_level) + ') Prod' + str(p_level)+'\n' + '-'*30 + '\n')
@@ -375,6 +417,7 @@ cat_label = 'Produkt_{}'.format(p_level)
 file = r'out' + '\\' + cat_label
 
 
+          
 
 # Vorgabe :
 # Artikeltitel, Artikeltext, Artikelbild url, Kategorie, Packungsgröße, PZN, 
@@ -447,6 +490,8 @@ else:
     for index,row in df1.iterrows():
         
         url = row["Filepath"]
+        #use encoded html files
+        url = os.path.dirname(url) + '/encoded/' + os.path.basename(url)
         soup = BeautifulSoup(open(url), "html.parser")
         l1 = scrap_prod0(soup)
         print(url)
@@ -460,6 +505,7 @@ else:
 df = DataFrame(l)
 logging.info(df.head())
 df.to_csv( file + '.csv') 
+df.to_excel(file + '.xlsx',sheet_name = 'rawdata')
 df.to_pickle(file + '.pkl')
 l_df[level] = df
 
@@ -475,6 +521,28 @@ RUNTIME = time.strftime("%H:%M:%S", time.gmtime(T-t0))
 logging.info('END \n\n RUNTIME :' + RUNTIME)
 
 
+#-------------------------------------------------
+#3) scrap all product details
+#-------------------------------------------------
+
+p_level = 2
+level = 5
+logging.info('\n' + '-'*30 + '\n2.' +str(p_level) + ') Prod' + str(p_level)+'\n' + '-'*30 + '\n')
+df1 = l_df[level-1]
+
+d_t = {'t':np.nan,'T':np.nan,'RUNTIME' : np.nan}
+d_t['t'] = time.clock()
+cat_label = 'Produkt_{}'.format(p_level)
+file = r'out' + '\\' + cat_label
+
+if load_df[level]:
+    df = pd.read_pickle(file + '.pkl')
+    logging.info('df was loaded from disk')
+    logging.debug(df.head())
+    l_df[level] = df
+else:
+    I = 0;l=[]
+    for index,row in df1.iterrows():
 
 # def webII_test(url_root='',path='',TEST=1):
 #     print(url_root)
