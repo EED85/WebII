@@ -565,9 +565,23 @@ if load_df[level]:
     logging.debug(df.head())
     l_df[level] = df
 else:
-    I = 0;l=[]
+    l = []
     for index,row in df1.iterrows():
-
+        d = {}
+        url = row["url"]
+        soup,cr = get_soup(url,cr)
+        logging.debug('REQUEST No ' + str(cr) + ': ' + url )
+        d["url"] = row["url"]
+        d["Kategorie - Level0"] = row["Kategorie - Level0"]
+        d["Kategorie - Level1"] = row["Kategorie - Level1"]
+        d["Kategorie - Level2"] = row["Kategorie - Level2"]
+        file_html = 'out/html/' + cat_label + '_{:06d}.html'.format(index)
+        d["Filepath"] = file_html
+        l.append(d)
+        save_html(file_html,soup)
+        if index >= max_web_i[level]-1:
+            logging.warning('Maximum number of webscapping : {}'.format(max_web_i[level]))
+            break
 # def webII_test(url_root='',path='',TEST=1):
 #     print(url_root)
 #     print(path)
