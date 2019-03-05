@@ -422,6 +422,17 @@ file = r'out' + '\\' + cat_label
 # Vorgabe :
 # Artikeltitel, Artikeltext, Artikelbild url, Kategorie, Packungsgröße, PZN, 
 # Darreichungsform, Verodnungsart, Anbieter/Hersteller,  UVP, Verkaufspreis, URL zu Beipackzettel
+def clean_string(str_in):
+    str_out = str_in.replace('\\n','').strip()
+    return(str_out)
+
+
+def convert_eur_no(str_EUR):
+    str_EUR.replace(".","")
+    regex = re.compile(r',(\d{2})\s{0,}€')
+    no = regex.sub(r'.\1',str_EUR)
+    return(no)
+
 
 def scrap_prod0(soup):
     soup_pr = soup.find_all('div',{'class':'l-product-inner mod-standard-inner'})
@@ -503,11 +514,24 @@ else:
         #     break
 
 df = DataFrame(l)
+for col in list(df):
+    df[col] = df[col].apply(clean_string)
+l_currency = ['Preis', 'Retail_Preis','sie_sparen']
+for col in l_currency:
+    df[col+'_converted'] = df[col].apply(convert_eur_no)
+    df[col+'_converted'] = df[col+'_converted'].replace('','0')
+    df[col+'_converted']=df[col+'_converted'].astype(float)
 logging.info(df.head())
 df.to_csv( file + '.csv') 
 df.to_excel(file + '.xlsx',sheet_name = 'rawdata')
 df.to_pickle(file + '.pkl')
 l_df[level] = df
+
+
+
+
+
+
 
 # soup_stars = soup_pr[0].find_all('span',{'class':"bv-rating-stars bv-rating-stars-off"})
 # soup_p = soup_pr[0].find_all('div',{'class':'BVRRInlineRating'})
